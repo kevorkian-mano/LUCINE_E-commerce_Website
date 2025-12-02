@@ -29,9 +29,8 @@ const Home = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary-900 to-primary-900 rounded-lg shadow-lg p-12 text-white mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Inspired by moonlight, made for your shine.</h1>
-      </div>
+        <h1 className="text-10xl md:text-4xl font-bold mb-4">INSPIRED BY MOONLIGHT🌙 , MADE FOR YOU TO SHINE🌕</h1>
+   
 
       {/* Categories */}
       {categories.length > 0 && (

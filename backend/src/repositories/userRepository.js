@@ -19,5 +19,7 @@ class UserRepository {
   }
 }
 
+// Export both: singleton for backward compatibility and class for factory
 export default new UserRepository();
+export { UserRepository };
 

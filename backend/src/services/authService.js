@@ -1,9 +1,15 @@
 import bcrypt from "bcryptjs";
-import userRepository from "../repositories/userRepository.js";
 import { generateToken } from "../utils/jwt.js";
 import { validateEmail, validatePassword } from "../utils/validators.js";
+import userRepository from "../repositories/userRepository.js";
 
 class AuthService {
+  constructor(userRepositoryParam = null) {
+    // Accept repository as dependency (Dependency Injection)
+    // If not provided, use default singleton for backward compatibility
+    this.userRepository = userRepositoryParam || userRepository;
+  }
+
   // Imperative registration logic
   async register(userData) {
     const { name, email, password } = userData;
@@ -22,13 +28,13 @@ class AuthService {
     }
 
     // Check if user exists
-    const existingUser = await userRepository.findByEmail(email);
+    const existingUser = await this.userRepository.findByEmail(email);
     if (existingUser) {
       throw new Error("User already exists with this email");
     }
 
     // Create user (password hashing happens in model pre-save hook)
-    const user = await userRepository.create({ name, email, password });
+    const user = await this.userRepository.create({ name, email, password });
     const token = generateToken(user._id);
 
     return {
@@ -48,7 +54,7 @@ class AuthService {
       throw new Error("Email and password are required");
     }
 
-    const user = await userRepository.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
     if (!user) {
       throw new Error("Invalid credentials");
     }
@@ -72,7 +78,7 @@ class AuthService {
   }
 
   async getProfile(userId) {
-    const user = await userRepository.findById(userId);
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error("User not found");
     }
@@ -80,5 +86,7 @@ class AuthService {
   }
 }
 
+// Export both: singleton for backward compatibility and class for factory
 export default new AuthService();
+export { AuthService };
 

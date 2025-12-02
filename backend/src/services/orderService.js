@@ -3,10 +3,38 @@ import orderRepository from "../repositories/orderRepository.js";
 import userRepository from "../repositories/userRepository.js";
 import cartService from "./cartService.js";
 import productService from "./productService.js";
-import { sendEmail } from "../utils/emailService.js";
 import { validateShippingAddress } from "../utils/validators.js";
+import OrderObserver from "../observers/OrderObserver.js";
+import EmailNotificationObserver from "../observers/EmailNotificationObserver.js";
+import AnalyticsObserver from "../observers/AnalyticsObserver.js";
+import InventoryObserver from "../observers/InventoryObserver.js";
 
 class OrderService {
+  constructor(
+    orderRepositoryParam = null,
+    userRepositoryParam = null,
+    cartServiceParam = null,
+    productServiceParam = null
+  ) {
+    // Accept dependencies (Dependency Injection)
+    // If not provided, use default singletons for backward compatibility
+    this.orderRepository = orderRepositoryParam || orderRepository;
+    this.userRepository = userRepositoryParam || userRepository;
+    this.cartService = cartServiceParam || cartService;
+    this.productService = productServiceParam || productService;
+
+    // Initialize OrderObserver (Subject) for Observer Pattern
+    this.orderObserver = new OrderObserver();
+    
+    // Attach observers - these will be notified when order events occur
+    // This decouples order service from notification services
+    this.orderObserver.attach(new EmailNotificationObserver());
+    this.orderObserver.attach(new AnalyticsObserver());
+    this.orderObserver.attach(new InventoryObserver());
+    
+    console.log(`OrderService initialized with ${this.orderObserver.getObserverCount()} observers`);
+  }
+
   // Imperative: Create order with transaction for concurrency safety (NFR5)
   async createOrder(userId, shippingAddress, paymentMethod) {
     // Validate shipping address
@@ -16,7 +44,7 @@ class OrderService {
     }
 
     // Get cart
-    const cart = await cartService.getCart(userId);
+    const cart = await this.cartService.getCart(userId);
     if (!cart.items || cart.items.length === 0) {
       throw new Error("Cart is empty");
     }
@@ -45,15 +73,15 @@ class OrderService {
 
       // Verify stock availability and update stock atomically
       for (const item of cart.items) {
-        const product = await productService.getById(item.product._id);
+        const product = await this.productService.getById(item.product._id);
         if (product.stock < item.quantity) {
           throw new Error(`Insufficient stock for ${product.name}`);
         }
-        await productService.updateStock(item.product._id, item.quantity);
+        await this.productService.updateStock(item.product._id, item.quantity);
       }
 
       // Create order
-      const order = await orderRepository.create({
+      const order = await this.orderRepository.create({
         user: userId,
         orderItems,
         shippingAddress,
@@ -66,16 +94,20 @@ class OrderService {
       });
 
       // Clear cart
-      await cartService.clearCart(userId);
+      await this.cartService.clearCart(userId);
 
       // Commit transaction
       await session.commitTransaction();
       session.endSession();
 
-      // Send email asynchronously (don't block order creation)
-      this.sendOrderConfirmationEmail(order).catch(err => {
-        console.error("Failed to send order confirmation email:", err);
-      });
+      // Notify all observers about order creation (Observer Pattern)
+      // This will automatically trigger:
+      // - EmailNotificationObserver: Sends order confirmation email
+      // - AnalyticsObserver: Updates sales analytics
+      // - InventoryObserver: Checks for low stock alerts
+      // All observers run asynchronously and handle their own errors
+      // This decouples order creation from notification logic
+      this.orderObserver.notify('orderCreated', order);
 
       return order;
     } catch (error) {
@@ -87,12 +119,12 @@ class OrderService {
 
   // Declarative: Get user's orders
   async getUserOrders(userId) {
-    return await orderRepository.findByUserId(userId);
+    return await this.orderRepository.findByUserId(userId);
   }
 
   // Declarative: Get order by ID
   async getOrderById(id, userId = null) {
-    const order = await orderRepository.findById(id);
+    const order = await this.orderRepository.findById(id);
     if (!order) {
       throw new Error("Order not found");
     }
@@ -107,12 +139,12 @@ class OrderService {
 
   // Imperative: Update order payment status
   async updateOrderPayment(id, paymentResult) {
-    const order = await orderRepository.findById(id);
+    const order = await this.orderRepository.findById(id);
     if (!order) {
       throw new Error("Order not found");
     }
 
-    return await orderRepository.update(id, {
+    return await this.orderRepository.update(id, {
       isPaid: true,
       paidAt: new Date(),
       paymentResult
@@ -121,34 +153,66 @@ class OrderService {
 
   // Declarative: Get all orders (admin)
   async getAllOrders(filters = {}) {
-    return await orderRepository.findAll(filters);
+    return await this.orderRepository.findAll(filters);
   }
 
   // Declarative: Get sales analytics
   async getSalesAnalytics(startDate, endDate) {
-    const [analytics] = await orderRepository.getSalesAnalytics(startDate, endDate);
+    const [analytics] = await this.orderRepository.getSalesAnalytics(startDate, endDate);
     return analytics || { totalSales: 0, totalOrders: 0, averageOrderValue: 0 };
   }
 
   // Declarative: Get sales by category
   async getSalesByCategory(startDate, endDate) {
-    return await orderRepository.getSalesByCategory(startDate, endDate);
+    return await this.orderRepository.getSalesByCategory(startDate, endDate);
   }
 
-  // Imperative: Send order confirmation email
-  async sendOrderConfirmationEmail(order) {
-    try {
-      const user = await userRepository.findById(order.user);
-      if (user && user.email) {
-        await sendEmail(user.email, "orderConfirmation", order);
-        await orderRepository.update(order._id, { emailSent: true });
-      }
-    } catch (error) {
-      console.error("Error sending order confirmation email:", error);
-      throw error;
+  // Update order status and notify observers
+  async updateOrderStatus(orderId, status) {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new Error("Order not found");
     }
+
+    await this.orderRepository.update(orderId, { status, updatedAt: new Date() });
+    
+    // Notify observers about order update
+    const updatedOrder = await this.orderRepository.findById(orderId);
+    this.orderObserver.notify('orderUpdated', updatedOrder);
+    
+    return updatedOrder;
+  }
+
+  // Cancel order and notify observers
+  async cancelOrder(orderId, reason = '') {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    if (order.status === 'cancelled') {
+      throw new Error("Order is already cancelled");
+    }
+
+    await this.orderRepository.update(orderId, { 
+      status: 'cancelled', 
+      cancellationReason: reason,
+      cancelledAt: new Date() 
+    });
+    
+    // Notify observers about order cancellation
+    // This will trigger:
+    // - EmailNotificationObserver: Sends cancellation email
+    // - AnalyticsObserver: Updates cancellation statistics
+    // - InventoryObserver: Restores inventory
+    const cancelledOrder = await this.orderRepository.findById(orderId);
+    this.orderObserver.notify('orderCancelled', cancelledOrder);
+    
+    return cancelledOrder;
   }
 }
 
+// Export both: singleton for backward compatibility and class for factory
 export default new OrderService();
+export { OrderService };
 

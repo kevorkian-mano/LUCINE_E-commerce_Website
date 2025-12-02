@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import EmailTemplateFactory from "../strategies/email/EmailTemplateFactory.js";
 
 // Email service using declarative configuration
 const createTransporter = () => {
@@ -17,34 +18,13 @@ const createTransporter = () => {
 
 const transporter = createTransporter();
 
-// Declarative email templates
-const emailTemplates = {
-  orderConfirmation: (order) => ({
-    subject: `Order Confirmation - Order #${order._id}`,
-    html: `
-      <h2>Thank you for your order!</h2>
-      <p>Your order has been confirmed and will be processed shortly.</p>
-      <h3>Order Details:</h3>
-      <ul>
-        ${order.orderItems.map(item => 
-          `<li>${item.name} x ${item.quantity} - $${item.price * item.quantity}</li>`
-        ).join("")}
-      </ul>
-      <p><strong>Total: $${order.totalPrice}</strong></p>
-      <p>Order ID: ${order._id}</p>
-    `
-  }),
-  orderNotification: (order) => ({
-    subject: `Order Notification - Order #${order._id}`,
-    html: `
-      <h2>New Order Received</h2>
-      <p>Order #${order._id} has been placed.</p>
-      <p>Total: $${order.totalPrice}</p>
-    `
-  })
-};
-
-// Imperative email sending function
+/**
+ * Send email using Strategy Pattern for email templates
+ * @param {string} to - Recipient email address
+ * @param {string} templateName - Name of the email template (orderConfirmation, passwordReset)
+ * @param {Object} data - Data to be used in the email template
+ * @returns {Promise<Object>} Result object with success status and messageId
+ */
 export const sendEmail = async (to, templateName, data) => {
   try {
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -53,17 +33,19 @@ export const sendEmail = async (to, templateName, data) => {
       return { success: true, message: "Email logged (SMTP not configured)" };
     }
 
-    const template = emailTemplates[templateName];
-    if (!template) {
-      throw new Error(`Email template ${templateName} not found`);
-    }
-
-    const emailContent = template(data);
+    // Use Strategy Pattern to get email template
+    // This allows us to easily add new email templates without modifying this code
+    const template = EmailTemplateFactory.createTemplate(templateName);
+    
+    // Get subject and HTML body from the template strategy
+    const subject = template.getSubject(data);
+    const htmlBody = template.getHtmlBody(data);
     
     const mailOptions = {
       from: `"E-commerce Store" <${process.env.SMTP_USER}>`,
       to,
-      ...emailContent
+      subject,
+      html: htmlBody
     };
 
     const info = await transporter.sendMail(mailOptions);

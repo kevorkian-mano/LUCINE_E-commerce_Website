@@ -65,5 +65,7 @@ class CartRepository {
   }
 }
 
+// Export both: singleton for backward compatibility and class for factory
 export default new CartRepository();
+export { CartRepository };
 
