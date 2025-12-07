@@ -1,10 +1,14 @@
 # Node modules
 node_modules/
 backend/node_modules/
+frontend/node_modules/
 
 # Env files
 .env
+backend/.env
+frontend/.env
 
-
-# docs files
+# Documentation folders (keep README.md and documents/ folder)
 docs/
+backend/docs/
+frontend/docs/

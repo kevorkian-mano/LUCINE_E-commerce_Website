@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { orderAPI } from '../utils/api';
-import { FiPackage, FiTruck, FiMapPin, FiCalendar } from 'react-icons/fi';
+import { FiPackage, FiTruck, FiMapPin, FiCalendar, FiRefreshCw } from 'react-icons/fi';
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -12,12 +12,38 @@ const OrderDetails = () => {
     fetchOrder();
   }, [id]);
 
+  useEffect(() => {
+    // If order is not paid and was created recently (within last 2 minutes), 
+    // automatically refetch after a delay to catch database updates
+    if (order && !order.isPaid) {
+      const orderAge = Date.now() - new Date(order.createdAt).getTime();
+      const twoMinutes = 2 * 60 * 1000;
+      
+      if (orderAge < twoMinutes) {
+        console.log('[OrderDetails] Order not paid yet, will refetch in 2 seconds...');
+        const refetchTimer = setTimeout(() => {
+          console.log('[OrderDetails] Refetching order to check payment status...');
+          fetchOrder();
+        }, 2000);
+        
+        return () => clearTimeout(refetchTimer);
+      }
+    }
+  }, [order, id]);
+
   const fetchOrder = async () => {
     try {
+      setLoading(true);
       const res = await orderAPI.getById(id);
-      setOrder(res.data.data);
+      const fetchedOrder = res.data.data;
+      setOrder(fetchedOrder);
+      console.log('[OrderDetails] Order fetched:', { 
+        isPaid: fetchedOrder.isPaid, 
+        orderId: fetchedOrder._id,
+        paidAt: fetchedOrder.paidAt 
+      });
     } catch (error) {
-      console.error('Error fetching order:', error);
+      console.error('[OrderDetails] Error fetching order:', error);
     } finally {
       setLoading(false);
     }
@@ -145,15 +171,26 @@ const OrderDetails = () => {
             <div className="space-y-2 pt-4 border-t">
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Payment Status:</span>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    order.isPaid
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}
-                >
-                  {order.isPaid ? 'Paid' : 'Pending'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      order.isPaid
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {order.isPaid ? 'Paid' : 'Pending'}
+                  </span>
+                  {!order.isPaid && (
+                    <button
+                      onClick={fetchOrder}
+                      className="p-1 text-gray-600 hover:text-primary-600 transition-colors"
+                      title="Refresh payment status"
+                    >
+                      <FiRefreshCw className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Delivery Status:</span>

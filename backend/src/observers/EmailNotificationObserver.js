@@ -16,7 +16,17 @@ class EmailNotificationObserver extends Observer {
   async update(event, data) {
     try {
       if (event === 'orderCreated') {
-        await this.handleOrderCreated(data);
+        // Only send email immediately for Bank Transfer (no payment confirmation)
+        // Card and PayPal payments will send email after payment confirmation
+        const paymentMethod = data.paymentMethod || '';
+        if (paymentMethod === 'Bank Transfer') {
+          await this.handleOrderCreated(data);
+        } else {
+          console.log(`📧 Skipping email for order ${data._id} - waiting for payment confirmation (${paymentMethod})`);
+        }
+      } else if (event === 'orderPaymentConfirmed') {
+        // Send email when payment is confirmed (after card payment)
+        await this.handleOrderPaymentConfirmed(data);
       } else if (event === 'orderUpdated') {
         await this.handleOrderUpdated(data);
       } else if (event === 'orderCancelled') {
@@ -37,16 +47,60 @@ class EmailNotificationObserver extends Observer {
    */
   async handleOrderCreated(order) {
     try {
+      console.log(`📬 EmailNotificationObserver: Order created event received for order ${order._id}`);
       const user = await userRepository.findById(order.user);
-      if (user && user.email) {
-        await sendEmail(user.email, 'orderConfirmation', order);
-        console.log(`✓ Order confirmation email sent to ${user.email} for order ${order._id}`);
-      } else {
-        console.warn(`No email found for user ${order.user}`);
+      
+      if (!user) {
+        console.warn(`⚠️  User not found for order ${order._id}`);
+        return;
       }
+      
+      if (!user.email) {
+        console.warn(`⚠️  No email found for user ${order.user} (user: ${user.name || 'Unknown'})`);
+        return;
+      }
+      
+      console.log(`📧 Preparing to send email to: ${user.email}`);
+      // Order is already populated with product details from OrderService
+      await sendEmail(user.email, 'orderConfirmation', order);
+      console.log(`✅ Order confirmation email sent to ${user.email} for order ${order._id}`);
     } catch (error) {
-      console.error(`Failed to send order confirmation email for order ${order._id}:`, error.message);
+      console.error(`❌ Failed to send order confirmation email for order ${order._id}:`);
+      console.error(`   Error: ${error.message}`);
+      console.error(`   Stack: ${error.stack}`);
       // Don't throw - email failure shouldn't break order creation
+    }
+  }
+
+  /**
+   * Send order confirmation email when payment is confirmed
+   * This is called after card payment is completed
+   * @param {Object} order - Order object with isPaid: true
+   */
+  async handleOrderPaymentConfirmed(order) {
+    try {
+      console.log(`📬 EmailNotificationObserver: Payment confirmed event received for order ${order._id}`);
+      const user = await userRepository.findById(order.user);
+      
+      if (!user) {
+        console.warn(`⚠️  User not found for order ${order._id}`);
+        return;
+      }
+      
+      if (!user.email) {
+        console.warn(`⚠️  No email found for user ${order.user} (user: ${user.name || 'Unknown'})`);
+        return;
+      }
+      
+      console.log(`📧 Preparing to send confirmation email to: ${user.email}`);
+      // Order is already populated with product details from OrderService
+      await sendEmail(user.email, 'orderConfirmation', order);
+      console.log(`✅ Order confirmation email sent to ${user.email} for order ${order._id} (after payment)`);
+    } catch (error) {
+      console.error(`❌ Failed to send order confirmation email for order ${order._id}:`);
+      console.error(`   Error: ${error.message}`);
+      console.error(`   Stack: ${error.stack}`);
+      // Don't throw - email failure shouldn't break payment processing
     }
   }
 

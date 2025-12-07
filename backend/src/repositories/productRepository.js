@@ -36,6 +36,10 @@ class ProductRepository {
   }
 
   async create(productData) {
+    // Set default stock if not provided
+    if (productData.stock === undefined) {
+      productData.stock = 0;
+    }
     const product = new Product(productData);
     return await product.save();
   }

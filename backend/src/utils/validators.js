@@ -6,7 +6,10 @@ export const validateEmail = (email) => {
 };
 
 export const validatePassword = (password) => {
-  return password && password.length >= 6;
+  if (!password || password.length < 6) {
+    return false;
+  }
+  return true;
 };
 
 export const validateProductData = (data) => {

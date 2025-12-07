@@ -2,21 +2,25 @@ import nodemailer from "nodemailer";
 import EmailTemplateFactory from "../strategies/email/EmailTemplateFactory.js";
 
 // Email service using declarative configuration
-const createTransporter = () => {
-  const config = {
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  };
+// Create transporter lazily to ensure environment variables are loaded
+let transporter = null;
 
-  return nodemailer.createTransport(config);
+const getTransporter = () => {
+  if (!transporter) {
+    const config = {
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    };
+
+    transporter = nodemailer.createTransport(config);
+  }
+  return transporter;
 };
-
-const transporter = createTransporter();
 
 /**
  * Send email using Strategy Pattern for email templates
@@ -27,14 +31,23 @@ const transporter = createTransporter();
  */
 export const sendEmail = async (to, templateName, data) => {
   try {
+    // Check if email is configured
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.log("Email service not configured. Email would be sent to:", to);
-      console.log("Template:", templateName, "Data:", data);
-      return { success: true, message: "Email logged (SMTP not configured)" };
+      console.log("⚠️  Email service not configured!");
+      console.log("   Email would be sent to:", to);
+      console.log("   Template:", templateName);
+      console.log("   To configure: Add SMTP_USER and SMTP_PASS to backend/.env");
+      console.log("   See GMAIL_EMAIL_SETUP.md for instructions");
+      return { success: false, message: "Email service not configured" };
     }
 
+    console.log(`📧 Attempting to send email to: ${to}`);
+    console.log(`   Template: ${templateName}`);
+    console.log(`   SMTP Host: ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);
+    console.log(`   SMTP User: ${process.env.SMTP_USER ? process.env.SMTP_USER.substring(0, 5) + '...' : 'NOT SET'}`);
+    console.log(`   SMTP Pass: ${process.env.SMTP_PASS ? '***' + process.env.SMTP_PASS.slice(-4) : 'NOT SET'}`);
+
     // Use Strategy Pattern to get email template
-    // This allows us to easily add new email templates without modifying this code
     const template = EmailTemplateFactory.createTemplate(templateName);
     
     // Get subject and HTML body from the template strategy
@@ -42,16 +55,39 @@ export const sendEmail = async (to, templateName, data) => {
     const htmlBody = template.getHtmlBody(data);
     
     const mailOptions = {
-      from: `"E-commerce Store" <${process.env.SMTP_USER}>`,
+      from: `"LUCINE" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html: htmlBody
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    console.log(`   Subject: ${subject}`);
+    
+    // Get transporter (created lazily to ensure env vars are loaded)
+    const emailTransporter = getTransporter();
+    const info = await emailTransporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully! Message ID: ${info.messageId}`);
+    console.log(`   Response: ${info.response}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("Email sending error:", error);
+    console.error("❌ Email sending error:");
+    console.error("   Error message:", error.message);
+    console.error("   Error code:", error.code);
+    console.error("   Full error:", error);
+    
+    // Provide helpful error messages
+    if (error.code === 'EAUTH') {
+      console.error("   ⚠️  Authentication failed!");
+      console.error("   Check your SMTP_USER and SMTP_PASS in backend/.env");
+      console.error("   Make sure you're using App Password (not regular password)");
+    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+      console.error("   ⚠️  Connection failed!");
+      console.error("   Check your internet connection and SMTP settings");
+    } else if (error.code === 'EENVELOPE') {
+      console.error("   ⚠️  Invalid email address!");
+      console.error("   Check the recipient email:", to);
+    }
+    
     throw new Error(`Failed to send email: ${error.message}`);
   }
 };

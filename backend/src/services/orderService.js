@@ -100,6 +100,9 @@ class OrderService {
       await session.commitTransaction();
       session.endSession();
 
+      // Populate order with product details for observers (especially email)
+      const populatedOrder = await this.orderRepository.findById(order._id);
+
       // Notify all observers about order creation (Observer Pattern)
       // This will automatically trigger:
       // - EmailNotificationObserver: Sends order confirmation email
@@ -107,7 +110,7 @@ class OrderService {
       // - InventoryObserver: Checks for low stock alerts
       // All observers run asynchronously and handle their own errors
       // This decouples order creation from notification logic
-      this.orderObserver.notify('orderCreated', order);
+      this.orderObserver.notify('orderCreated', populatedOrder);
 
       return order;
     } catch (error) {
@@ -139,16 +142,39 @@ class OrderService {
 
   // Imperative: Update order payment status
   async updateOrderPayment(id, paymentResult) {
+    console.log('[OrderService] Updating order payment:', { orderId: id, paymentResult });
     const order = await this.orderRepository.findById(id);
     if (!order) {
+      console.error('[OrderService] Order not found:', id);
       throw new Error("Order not found");
     }
 
-    return await this.orderRepository.update(id, {
+    console.log('[OrderService] Current order status:', {
+      orderId: order._id,
+      isPaid: order.isPaid,
+      paidAt: order.paidAt
+    });
+
+    const updatedOrder = await this.orderRepository.update(id, {
       isPaid: true,
       paidAt: new Date(),
       paymentResult
     });
+
+    console.log('[OrderService] Order updated:', {
+      orderId: updatedOrder._id,
+      isPaid: updatedOrder.isPaid,
+      paidAt: updatedOrder.paidAt
+    });
+
+    // Populate order with product details for email
+    const populatedOrder = await this.orderRepository.findById(updatedOrder._id);
+    
+    // Notify observers that order payment was updated
+    // This will trigger email notification after payment is confirmed
+    this.orderObserver.notify('orderPaymentConfirmed', populatedOrder);
+
+    return updatedOrder;
   }
 
   // Declarative: Get all orders (admin)

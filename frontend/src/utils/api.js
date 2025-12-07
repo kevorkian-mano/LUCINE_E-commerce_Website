@@ -76,4 +76,19 @@ export const orderAPI = {
   getSalesByCategory: (params) => api.get('/orders/analytics/category', { params }),
 };
 
+// Payment API
+export const paymentAPI = {
+  createIntent: (data) => api.post('/payments/create-intent', data),
+  confirm: (data) => api.post('/payments/confirm', data),
+  getStatus: (paymentIntentId) => api.get(`/payments/status/${paymentIntentId}`),
+  cancel: (paymentIntentId) => api.post('/payments/cancel', { paymentIntentId }),
+};
+
+// PayPal API
+export const paypalAPI = {
+  createOrder: (data) => api.post('/paypal/create-order', data),
+  captureOrder: (data) => api.post('/paypal/capture-order', data),
+  getOrderStatus: (paypalOrderId) => api.get(`/paypal/order/${paypalOrderId}`),
+};
+
 export default api;
