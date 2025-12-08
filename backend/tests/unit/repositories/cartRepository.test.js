@@ -65,25 +65,23 @@ describe('CartRepository', () => {
     // GREEN: After implementing addItem, test passed
     // REFACTOR: Improved logic for existing items, test still passes
     it('should add new item to existing cart', async () => {
-      const existingCart = {
-        ...mockCart,
-        items: [],
-        save: vi.fn().mockResolvedValue(mockCart)
-      };
-
-      const mockFindOne = vi.fn()
-        .mockResolvedValueOnce(existingCart)
-        .mockResolvedValueOnce(mockCart);
-      Cart.findOne = mockFindOne;
-
-      const mockFindById = vi.fn().mockReturnValue({
+      // Mock findOneAndUpdate for increment (returns null when item doesn't exist)
+      // Need to return chainable object with populate that resolves to null
+      const mockFindOneAndUpdateIncrement = vi.fn().mockReturnValue({
+        populate: vi.fn().mockResolvedValue(null)
+      });
+      // Mock findOneAndUpdate for push (adds new item)
+      const mockFindOneAndUpdatePush = vi.fn().mockReturnValue({
         populate: vi.fn().mockResolvedValue(mockCart)
       });
-      Cart.findById = mockFindById;
+      
+      Cart.findOneAndUpdate = vi.fn()
+        .mockImplementationOnce(() => mockFindOneAndUpdateIncrement())
+        .mockImplementationOnce(() => mockFindOneAndUpdatePush());
 
       const result = await cartRepository.addItem('userId123', mockProduct._id, 2);
 
-      expect(existingCart.save).toHaveBeenCalled();
+      expect(Cart.findOneAndUpdate).toHaveBeenCalledTimes(2);
       expect(result).toEqual(mockCart);
     });
 
@@ -92,25 +90,22 @@ describe('CartRepository', () => {
     // GREEN: After adding logic to update existing items, test passed
     // REFACTOR: Test still passes
     it('should update quantity if item already exists in cart', async () => {
-      const existingCart = {
+      // Mock findOneAndUpdate for increment (item exists, so returns updated cart)
+      const updatedCart = {
         ...mockCart,
-        items: [{ product: mockProduct._id, quantity: 1 }],
-        save: vi.fn().mockResolvedValue(mockCart)
+        items: [{ product: mockProduct, quantity: 3 }]
       };
-
-      Cart.findOne = vi.fn()
-        .mockResolvedValueOnce(existingCart)
-        .mockResolvedValueOnce(mockCart);
-
-      const mockFindById = vi.fn().mockReturnValue({
-        populate: vi.fn().mockResolvedValue(mockCart)
+      const mockFindOneAndUpdateIncrement = vi.fn().mockReturnValue({
+        populate: vi.fn().mockResolvedValue(updatedCart)
       });
-      Cart.findById = mockFindById;
+      
+      Cart.findOneAndUpdate = vi.fn()
+        .mockImplementationOnce(() => mockFindOneAndUpdateIncrement());
 
       const result = await cartRepository.addItem('userId123', mockProduct._id, 2);
 
-      expect(existingCart.items[0].quantity).toBe(3);
-      expect(existingCart.save).toHaveBeenCalled();
+      expect(Cart.findOneAndUpdate).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(updatedCart);
     });
   });
 
@@ -167,7 +162,9 @@ describe('CartRepository', () => {
     // REFACTOR: Test still passes
     it('should clear all items from cart', async () => {
       const clearedCart = { ...mockCart, items: [] };
-      Cart.findOneAndUpdate.mockResolvedValue(clearedCart);
+      Cart.findOneAndUpdate.mockReturnValue({
+        populate: vi.fn().mockResolvedValue(clearedCart)
+      });
 
       const result = await cartRepository.clearCart('userId123');
 

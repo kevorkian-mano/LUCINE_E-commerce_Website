@@ -5,7 +5,8 @@ class OrderController {
   // Create order
   createOrder = asyncHandler(async (req, res) => {
     const { shippingAddress, paymentMethod } = req.body;
-    const order = await orderService.createOrder(req.user.id, shippingAddress, paymentMethod);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const order = await orderService.createOrder(userId, shippingAddress, paymentMethod);
     res.status(201).json({
       success: true,
       message: "Order created successfully",
@@ -15,7 +16,8 @@ class OrderController {
 
   // Get user's orders
   getUserOrders = asyncHandler(async (req, res) => {
-    const orders = await orderService.getUserOrders(req.user.id);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const orders = await orderService.getUserOrders(userId);
     res.json({
       success: true,
       count: orders.length,
@@ -25,7 +27,8 @@ class OrderController {
 
   // Get order by ID
   getOrderById = asyncHandler(async (req, res) => {
-    const order = await orderService.getOrderById(req.params.id, req.user.id);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const order = await orderService.getOrderById(req.params.id, userId);
     res.json({
       success: true,
       data: order

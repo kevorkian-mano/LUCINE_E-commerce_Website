@@ -1,7 +1,9 @@
 import jwt from "jsonwebtoken";
 
 export const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+  // Ensure userId is a string (Mongoose ObjectIds need to be converted)
+  const userIdString = userId?.toString ? userId.toString() : userId;
+  return jwt.sign({ userId: userIdString }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || "7d"
   });
 };

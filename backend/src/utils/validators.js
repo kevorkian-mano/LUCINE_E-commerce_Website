@@ -34,6 +34,10 @@ export const validateProductData = (data) => {
 
 export const validateShippingAddress = (address) => {
   const errors = [];
+  if (!address) {
+    errors.push("Shipping address is required");
+    return errors;
+  }
   if (!address.street || address.street.trim().length === 0) {
     errors.push("Street address is required");
   }

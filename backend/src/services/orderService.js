@@ -5,6 +5,7 @@ import cartService from "./cartService.js";
 import productService from "./productService.js";
 import { validateShippingAddress } from "../utils/validators.js";
 import OrderObserver from "../observers/OrderObserver.js";
+import { AppError } from "../utils/AppError.js";
 import EmailNotificationObserver from "../observers/EmailNotificationObserver.js";
 import AnalyticsObserver from "../observers/AnalyticsObserver.js";
 import InventoryObserver from "../observers/InventoryObserver.js";
@@ -40,13 +41,27 @@ class OrderService {
     // Validate shipping address
     const addressErrors = validateShippingAddress(shippingAddress);
     if (addressErrors.length > 0) {
-      throw new Error(addressErrors.join(", "));
+      throw new AppError(addressErrors.join(", "), 400);
     }
 
-    // Get cart
+    // Get cart - cartService.getCart uses cartRepository.findByUserId which populates products
     const cart = await this.cartService.getCart(userId);
     if (!cart.items || cart.items.length === 0) {
-      throw new Error("Cart is empty");
+      throw new AppError("Cart is empty", 400);
+    }
+
+    // Verify products are populated (cartRepository.findByUserId should populate them)
+    // If not populated, it means products don't exist or there's an issue
+    for (const item of cart.items) {
+      if (!item.product) {
+        throw new AppError(`Product not found for cart item`, 400);
+      }
+      // If product is just an ID (not populated), try to get the product
+      if (typeof item.product === 'string' || (item.product._id && !item.product.name)) {
+        // Product not fully populated, fetch it
+        const product = await this.productService.getById(item.product._id || item.product);
+        item.product = product;
+      }
     }
 
     // Start transaction for atomic operations
@@ -56,6 +71,9 @@ class OrderService {
     try {
       // Calculate prices
       const itemsPrice = cart.items.reduce((total, item) => {
+        if (!item.product || !item.product.price) {
+          throw new AppError(`Product information missing for cart item`, 400);
+        }
         return total + (item.product.price * item.quantity);
       }, 0);
 
@@ -64,20 +82,29 @@ class OrderService {
       const totalPrice = itemsPrice + shippingPrice + taxPrice;
 
       // Prepare order items
-      const orderItems = cart.items.map(item => ({
-        product: item.product._id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity
-      }));
+      const orderItems = cart.items.map(item => {
+        if (!item.product || !item.product._id || !item.product.name || !item.product.price) {
+          throw new AppError(`Product information missing for cart item`, 400);
+        }
+        return {
+          product: item.product._id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity
+        };
+      });
 
       // Verify stock availability and update stock atomically
       for (const item of cart.items) {
-        const product = await this.productService.getById(item.product._id);
-        if (product.stock < item.quantity) {
-          throw new Error(`Insufficient stock for ${product.name}`);
+        const productId = item.product._id || item.product;
+        if (!productId) {
+          throw new AppError(`Product ID missing for cart item`, 400);
         }
-        await this.productService.updateStock(item.product._id, item.quantity);
+        const product = await this.productService.getById(productId);
+        if (product.stock < item.quantity) {
+          throw new AppError(`Insufficient stock for ${product.name}`, 400);
+        }
+        await this.productService.updateStock(productId, item.quantity);
       }
 
       // Create order
@@ -127,14 +154,18 @@ class OrderService {
 
   // Declarative: Get order by ID
   async getOrderById(id, userId = null) {
+    // Validate ObjectId format
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      throw new AppError("Order not found", 404);
+    }
     const order = await this.orderRepository.findById(id);
     if (!order) {
-      throw new Error("Order not found");
+      throw new AppError("Order not found", 404);
     }
 
     // If userId provided, verify ownership
     if (userId && order.user._id.toString() !== userId.toString()) {
-      throw new Error("Unauthorized access to order");
+      throw new AppError("Unauthorized access to order", 403);
     }
 
     return order;
@@ -146,7 +177,7 @@ class OrderService {
     const order = await this.orderRepository.findById(id);
     if (!order) {
       console.error('[OrderService] Order not found:', id);
-      throw new Error("Order not found");
+      throw new AppError("Order not found", 404);
     }
 
     console.log('[OrderService] Current order status:', {
@@ -197,7 +228,7 @@ class OrderService {
   async updateOrderStatus(orderId, status) {
     const order = await this.orderRepository.findById(orderId);
     if (!order) {
-      throw new Error("Order not found");
+      throw new AppError("Order not found", 404);
     }
 
     await this.orderRepository.update(orderId, { status, updatedAt: new Date() });
@@ -213,11 +244,11 @@ class OrderService {
   async cancelOrder(orderId, reason = '') {
     const order = await this.orderRepository.findById(orderId);
     if (!order) {
-      throw new Error("Order not found");
+      throw new AppError("Order not found", 404);
     }
 
     if (order.status === 'cancelled') {
-      throw new Error("Order is already cancelled");
+      throw new AppError("Order is already cancelled", 400);
     }
 
     await this.orderRepository.update(orderId, { 

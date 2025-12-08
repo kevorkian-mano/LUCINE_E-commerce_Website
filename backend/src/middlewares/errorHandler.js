@@ -22,7 +22,7 @@ export const errorHandler = (err, req, res, next) => {
     message = "Resource not found";
   }
 
-  // JWT errors
+  // JWT errors - handle these before message-based logic
   if (err.name === "JsonWebTokenError") {
     statusCode = 401;
     message = "Invalid token";
@@ -31,6 +31,34 @@ export const errorHandler = (err, req, res, next) => {
   if (err.name === "TokenExpiredError") {
     statusCode = 401;
     message = "Token expired";
+  }
+
+  // Handle common error messages and set appropriate status codes
+  // Only apply if statusCode hasn't been set by specific error handlers above
+  if (!err.statusCode && statusCode === 500 && err.message) {
+    const lowerMessage = err.message.toLowerCase();
+    
+    // Authentication/authorization errors
+    if (lowerMessage.includes('invalid credentials') || 
+        lowerMessage.includes('user not found') ||
+        lowerMessage.includes('invalid email') ||
+        lowerMessage.includes('invalid password')) {
+      statusCode = 401;
+    }
+    
+    // Validation errors
+    if (lowerMessage.includes('required') ||
+        (lowerMessage.includes('invalid') && !lowerMessage.includes('credentials') && !lowerMessage.includes('token')) ||
+        lowerMessage.includes('must be') ||
+        lowerMessage.includes('already exists') ||
+        lowerMessage.includes('password must')) {
+      statusCode = 400;
+    }
+    
+    // Not found errors
+    if (lowerMessage.includes('not found')) {
+      statusCode = 404;
+    }
   }
 
   res.status(statusCode).json({

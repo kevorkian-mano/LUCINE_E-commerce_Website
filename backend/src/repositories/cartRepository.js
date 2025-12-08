@@ -11,36 +11,33 @@ class CartRepository {
   }
 
   async addItem(userId, productId, quantity) {
-    // First check if item exists, then update or add
-    const cart = await Cart.findOne({ user: userId });
-    if (cart) {
-      const existingItemIndex = cart.items.findIndex(
-        item => item.product.toString() === productId.toString()
-      );
-      
-      if (existingItemIndex >= 0) {
-        // Update existing item quantity
-        cart.items[existingItemIndex].quantity += quantity;
-        await cart.save();
-        return await Cart.findById(cart._id).populate("items.product");
-      } else {
-        // Add new item
-        cart.items.push({ product: productId, quantity });
-        await cart.save();
-        return await Cart.findById(cart._id).populate("items.product");
-      }
-    } else {
-      // Create new cart with item
-      const newCart = new Cart({
-        user: userId,
-        items: [{ product: productId, quantity }]
-      });
-      await newCart.save();
-      return await Cart.findById(newCart._id).populate("items.product");
+    // Use atomic operations to avoid version conflicts
+    // First try to increment if item exists (atomic operation)
+    const updatedCart = await Cart.findOneAndUpdate(
+      { user: userId, "items.product": productId },
+      { $inc: { "items.$.quantity": quantity } },
+      { new: true }
+    ).populate("items.product");
+    
+    if (updatedCart) {
+      return updatedCart;
     }
+    
+    // Item doesn't exist, try to add it (atomic operation)
+    const cartWithNewItem = await Cart.findOneAndUpdate(
+      { user: userId },
+      { $push: { items: { product: productId, quantity } } },
+      { new: true, upsert: true }
+    ).populate("items.product");
+    
+    return cartWithNewItem;
   }
 
   async updateItemQuantity(userId, productId, quantity) {
+    const cart = await Cart.findOne({ user: userId, "items.product": productId });
+    if (!cart) {
+      return null;
+    }
     return await Cart.findOneAndUpdate(
       { user: userId, "items.product": productId },
       { $set: { "items.$.quantity": quantity } },
@@ -49,6 +46,10 @@ class CartRepository {
   }
 
   async removeItem(userId, productId) {
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      return null;
+    }
     return await Cart.findOneAndUpdate(
       { user: userId },
       { $pull: { items: { product: productId } } },
@@ -61,7 +62,7 @@ class CartRepository {
       { user: userId },
       { $set: { items: [] } },
       { new: true }
-    );
+    ).populate("items.product");
   }
 }
 

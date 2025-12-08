@@ -140,7 +140,8 @@ describe('CartController', () => {
       expect(cartService.clearCart).toHaveBeenCalledWith('userId123');
       expect(res.json).toHaveBeenCalledWith({
         success: true,
-        message: 'Cart cleared'
+        message: 'Cart cleared',
+        data: {}
       });
     });
   });

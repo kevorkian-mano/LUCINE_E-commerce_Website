@@ -4,7 +4,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 class CartController {
   // Get user's cart
   getCart = asyncHandler(async (req, res) => {
-    const cart = await cartService.getCart(req.user.id);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const cart = await cartService.getCart(userId);
     res.json({
       success: true,
       data: cart
@@ -14,7 +15,8 @@ class CartController {
   // Add item to cart
   addItem = asyncHandler(async (req, res) => {
     const { productId, quantity } = req.body;
-    const cart = await cartService.addItem(req.user.id, productId, quantity || 1);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const cart = await cartService.addItem(userId, productId, quantity || 1);
     res.status(201).json({
       success: true,
       message: "Item added to cart",
@@ -26,7 +28,8 @@ class CartController {
   updateItemQuantity = asyncHandler(async (req, res) => {
     const { productId } = req.params;
     const { quantity } = req.body;
-    const cart = await cartService.updateItemQuantity(req.user.id, productId, quantity);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const cart = await cartService.updateItemQuantity(userId, productId, quantity);
     res.json({
       success: true,
       message: "Cart updated",
@@ -37,7 +40,8 @@ class CartController {
   // Remove item from cart
   removeItem = asyncHandler(async (req, res) => {
     const { productId } = req.params;
-    const cart = await cartService.removeItem(req.user.id, productId);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const cart = await cartService.removeItem(userId, productId);
     res.json({
       success: true,
       message: "Item removed from cart",
@@ -47,10 +51,12 @@ class CartController {
 
   // Clear cart
   clearCart = asyncHandler(async (req, res) => {
-    await cartService.clearCart(req.user.id);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const cart = await cartService.clearCart(userId);
     res.json({
       success: true,
-      message: "Cart cleared"
+      message: "Cart cleared",
+      data: cart
     });
   });
 }

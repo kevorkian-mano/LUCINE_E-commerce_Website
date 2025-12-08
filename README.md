@@ -258,10 +258,30 @@ cd backend
 npm test
 ```
 
-**Frontend:**
+**Frontend Unit/Integration:**
 ```bash
 cd frontend
 npm test
+```
+
+**Frontend E2E (Cypress):**
+```bash
+# Make sure both backend and frontend servers are running first!
+
+# Terminal 1: Start backend
+cd backend && npm run dev
+
+# Terminal 2: Start frontend
+cd frontend && npm run dev
+
+# Terminal 3: Run E2E tests
+cd frontend && npm run e2e
+
+# Or use the helper script
+cd frontend && ./run-e2e-tests.sh
+
+# Or open Cypress GUI for interactive testing
+cd frontend && npm run e2e:open
 ```
 
 ---
@@ -327,6 +347,7 @@ npm test
 - **OTP Generation**
 - **Paypal** logic  Fix 
 
+
 ---
 
 ## 📝 License
@@ -335,4 +356,4 @@ This project is created for educational purposes.
 
 ---
 
-**Built with ❤️ using MERN Stack**
+**Built with LOVE using MERN Stack**

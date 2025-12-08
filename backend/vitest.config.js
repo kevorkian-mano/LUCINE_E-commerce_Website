@@ -5,6 +5,13 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.js'],
+    // Run tests in sequence for integration tests to avoid database conflicts
+    sequence: {
+      shuffle: false,
+      concurrent: false,
+      // Run test files sequentially to ensure proper isolation
+      hooks: 'sequential'
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

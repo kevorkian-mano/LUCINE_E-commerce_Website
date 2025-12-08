@@ -105,18 +105,20 @@ describe('CartService', () => {
         ...mockCart,
         items: [{ product: mockProduct, quantity: 2 }]
       };
+      const updatedCart = {
+        ...existingCart,
+        items: [{ product: mockProduct, quantity: 5 }]
+      };
 
       mockProductService.getById.mockResolvedValue(mockProduct);
       mockCartRepository.findByUserId.mockResolvedValue(existingCart);
-      mockCartRepository.updateItemQuantity.mockResolvedValue({
-        ...existingCart,
-        items: [{ product: mockProduct, quantity: 5 }]
-      });
+      mockCartRepository.addItem.mockResolvedValue(updatedCart);
 
       const result = await cartService.addItem(userId, productId, 3);
 
-      expect(mockCartRepository.updateItemQuantity).toHaveBeenCalledWith(userId, productId, 5);
-      expect(mockCartRepository.addItem).not.toHaveBeenCalled();
+      expect(mockCartRepository.addItem).toHaveBeenCalledWith(userId, productId, 3);
+      expect(mockCartRepository.updateItemQuantity).not.toHaveBeenCalled();
+      expect(result).toEqual(updatedCart);
     });
 
     // TDD Evidence:
@@ -215,14 +217,20 @@ describe('CartService', () => {
     it('should remove item from cart', async () => {
       const userId = 'userId123';
       const productId = mockProduct._id;
+      const existingCart = {
+        ...mockCart,
+        items: [{ product: mockProduct, quantity: 2 }]
+      };
       const updatedCart = { ...mockCart, items: [] };
 
+      mockCartRepository.findByUserId.mockResolvedValue(existingCart);
       mockCartRepository.removeItem.mockResolvedValue(updatedCart);
 
       const result = await cartService.removeItem(userId, productId);
 
-      expect(result).toEqual(updatedCart);
+      expect(mockCartRepository.findByUserId).toHaveBeenCalledWith(userId);
       expect(mockCartRepository.removeItem).toHaveBeenCalledWith(userId, productId);
+      expect(result).toEqual(updatedCart);
     });
   });
 

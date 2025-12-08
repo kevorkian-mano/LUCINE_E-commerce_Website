@@ -72,7 +72,10 @@ describe('Auth Middleware', () => {
       await authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Authentication required' });
+      expect(res.json).toHaveBeenCalledWith({ 
+        success: false,
+        message: 'Authentication required' 
+      });
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -86,7 +89,10 @@ describe('Auth Middleware', () => {
       await authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Authentication required' });
+      expect(res.json).toHaveBeenCalledWith({ 
+        success: false,
+        message: 'Authentication required' 
+      });
     });
 
     // TDD Evidence:
@@ -104,7 +110,10 @@ describe('Auth Middleware', () => {
       await authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Invalid or expired token' });
+      expect(res.json).toHaveBeenCalledWith({ 
+        success: false,
+        message: 'Invalid or expired token: Invalid token' 
+      });
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -124,7 +133,10 @@ describe('Auth Middleware', () => {
       await authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'User not found' });
+      expect(res.json).toHaveBeenCalledWith({ 
+        success: false,
+        message: 'User not found' 
+      });
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -177,6 +189,7 @@ describe('Auth Middleware', () => {
 
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({
+        success: false,
         message: 'Access denied. Insufficient permissions.'
       });
       expect(next).not.toHaveBeenCalled();
@@ -193,7 +206,10 @@ describe('Auth Middleware', () => {
       middleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Authentication required' });
+      expect(res.json).toHaveBeenCalledWith({ 
+        success: false,
+        message: 'Authentication required' 
+      });
       expect(next).not.toHaveBeenCalled();
     });
 

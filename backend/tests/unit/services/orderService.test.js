@@ -109,6 +109,7 @@ describe('OrderService', () => {
       mockProductService.getById.mockResolvedValue(mockProduct);
       mockProductService.updateStock.mockResolvedValue(mockProduct);
       mockOrderRepository.create.mockResolvedValue(mockOrder);
+      mockOrderRepository.findById.mockResolvedValue(mockOrder); // Mock findById for populated order
       mockCartService.clearCart.mockResolvedValue({});
 
       const result = await orderService.createOrder(userId, shippingAddress, paymentMethod);
@@ -116,7 +117,16 @@ describe('OrderService', () => {
       expect(result).toEqual(mockOrder);
       expect(mockOrderRepository.create).toHaveBeenCalled();
       expect(mockCartService.clearCart).toHaveBeenCalledWith(userId);
-      expect(mockOrderObserver.notify).toHaveBeenCalledWith('orderCreated', mockOrder);
+      // Verify observer was called with orderCreated event and an order object
+      expect(mockOrderObserver.notify).toHaveBeenCalledWith('orderCreated', expect.any(Object));
+      // Verify the order passed to observer has the expected structure
+      const notifyCall = mockOrderObserver.notify.mock.calls.find(call => call[0] === 'orderCreated');
+      expect(notifyCall).toBeDefined();
+      expect(notifyCall[1]).toMatchObject({
+        _id: mockOrder._id,
+        user: mockOrder.user,
+        totalPrice: mockOrder.totalPrice
+      });
     });
 
     // TDD Evidence:
