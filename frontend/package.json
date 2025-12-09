@@ -14,7 +14,16 @@
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "e2e": "cypress run",
-    "e2e:open": "cypress open"
+    "e2e:open": "cypress open",
+    "e2e:auth": "cypress run --spec \"cypress/e2e/auth.cy.js\"",
+    "e2e:cart": "cypress run --spec \"cypress/e2e/cart.cy.js\"",
+    "e2e:checkout": "cypress run --spec \"cypress/e2e/checkout.cy.js\"",
+    "e2e:products": "cypress run --spec \"cypress/e2e/products.cy.js\"",
+    "e2e:orders": "cypress run --spec \"cypress/e2e/orders.cy.js\"",
+    "e2e:complete": "cypress run --spec \"cypress/e2e/complete-flow.cy.js\"",
+    "e2e:admin": "cypress run --spec \"cypress/e2e/admin-flow.cy.js\"",
+    "e2e:navigation": "cypress run --spec \"cypress/e2e/navigation.cy.js\""
+  
   },
   "dependencies": {
     "@paypal/react-paypal-js": "^8.9.2",

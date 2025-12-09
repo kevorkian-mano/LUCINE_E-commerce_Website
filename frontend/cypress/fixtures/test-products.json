@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "name": "Test Product",
+    "price": 99.99,
+    "image": "/images/test-product.jpg",
+    "description": "A test product for E2E testing"
+  }
+]

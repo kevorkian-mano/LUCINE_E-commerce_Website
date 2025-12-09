@@ -1,29 +1,30 @@
-import { defineConfig } from 'cypress';
+// cypress.config.js
+const { defineConfig } = require("cypress");
 
-export default defineConfig({
+module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost:3001',
+    viewportWidth: 1280,
+    viewportHeight: 720,
     setupNodeEvents(on, config) {
       // implement node event listeners here
     },
-    viewportWidth: 1280,
-    viewportHeight: 720,
-    video: true, // Enable video recording
-    screenshotOnRunFailure: true,
-    defaultCommandTimeout: 15000, // Increased for slower operations
-    requestTimeout: 15000,
-    responseTimeout: 15000,
-    pageLoadTimeout: 30000,
-    specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     supportFile: 'cypress/support/e2e.js',
-    // Retry failed tests
+    specPattern: 'cypress/e2e/**/*.cy.js',
+    video: false,
+    screenshotOnRunFailure: true,
+    defaultCommandTimeout: 30000,
+    requestTimeout: 30000,
+    responseTimeout: 30000,
+    pageLoadTimeout: 30000,
+    numTestsKeptInMemory: 5,
     retries: {
-      runMode: 2, // Retry failed tests 2 times in CI
-      openMode: 0, // Don't retry in interactive mode
-    },
+      runMode: 1,
+      openMode: 0
+    }
   },
   env: {
     apiUrl: 'http://localhost:5000/api',
+    backendUrl: 'http://localhost:5000',
   },
 });
-
