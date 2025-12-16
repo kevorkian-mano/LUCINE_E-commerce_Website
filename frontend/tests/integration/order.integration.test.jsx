@@ -65,12 +65,6 @@ vi.mock('@stripe/react-stripe-js', () => ({
   useElements: () => null,
 }));
 
-// Mock PayPal
-vi.mock('@paypal/react-paypal-js', () => ({
-  PayPalScriptProvider: ({ children }) => children,
-  PayPalButtons: () => <div data-testid="paypal-buttons">PayPal Buttons</div>,
-}));
-
 const TestWrapper = ({ children }) => (
   <BrowserRouter>
     <AuthProvider>
@@ -197,20 +191,15 @@ describe('Order Flow Integration Tests', () => {
           zipCode: '10001',
           country: 'USA',
         });
-        // Payment method is 'PayPal' by default in Checkout component
-        expect(callArgs.paymentMethod).toBe('PayPal');
+        // Payment method is 'Credit Card' by default in Checkout component
+        expect(callArgs.paymentMethod).toBe('Credit Card');
       });
 
-      // Order creation is the main test - ignore PayPal payment flow
+      // Order creation is the main test
       // The order should be created successfully
       await waitFor(() => {
         expect(orderAPI.create).toHaveBeenCalled();
       }, { timeout: 10000 });
-      
-      // For PayPal payment method, navigation happens after payment success
-      // For other payment methods, navigation happens immediately
-      // Since we're testing order creation, we just verify the order was created
-      // PayPal payment flow is ignored as requested
     });
 
     it('should validate shipping address fields', async () => {

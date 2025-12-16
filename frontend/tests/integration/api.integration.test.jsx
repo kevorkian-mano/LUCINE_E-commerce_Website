@@ -55,11 +55,6 @@ vi.mock('../../src/utils/api', () => ({
     getStatus: vi.fn(),
     cancel: vi.fn(),
   },
-  paypalAPI: {
-    createOrder: vi.fn(),
-    captureOrder: vi.fn(),
-    getOrderStatus: vi.fn(),
-  },
 }));
 
 import api, { authAPI, productAPI, cartAPI, orderAPI } from '../../src/utils/api';

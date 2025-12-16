@@ -50,7 +50,7 @@ export const mockOrder = {
     zipCode: '10001',
     country: 'USA'
   },
-  paymentMethod: 'PayPal',
+  paymentMethod: 'Credit Card',
   itemsPrice: 199.98,
   shippingPrice: 10,
   taxPrice: 19.998,

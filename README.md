@@ -21,7 +21,6 @@ A modern, production-ready e-commerce application built with the MERN stack, fea
 
 ### Payment Integration
 - **Stripe** - Secure credit/debit card processing with Stripe Elements
-- **PayPal** - Full PayPal integration with order capture
 
 
 ### Quality Assurance
@@ -101,12 +100,6 @@ The application implements three key design patterns for maintainability and sca
 - Success: `4242 4242 4242 4242`
 - Decline: `4000 0000 0000 0002`
 
-### PayPal Integration
-- Full PayPal Checkout integration
-
-
-
-
 ---
 
 ## 📧 Email Service
@@ -158,7 +151,7 @@ Automated email notifications powered by Gmail SMTP:
 - **Database:** MongoDB with Mongoose
 - **Authentication:** JWT + bcrypt
 - **Email:** Nodemailer (Gmail SMTP)
-- **Payments:** Stripe SDK, PayPal REST API
+- **Payments:** Stripe SDK
 - **Testing:** Vitest
 - **Architecture:** Layered (3-Tier) with SOLID principles
 
@@ -169,7 +162,7 @@ Automated email notifications powered by Gmail SMTP:
 - **State Management:** Context API
 - **HTTP Client:** Axios
 - **UI Components:** React Icons, React Toastify
-- **Payments:** Stripe.js, PayPal React SDK
+- **Payments:** Stripe.js
 - **Testing:** Vitest + React Testing Library
 
 ---
@@ -211,11 +204,6 @@ Automated email notifications powered by Gmail SMTP:
    # Stripe (Optional - for payment processing)
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_TEST_SECRET_KEY=sk_test_...
-   
-   # PayPal (Optional - for PayPal payments)
-   PAYPAL_CLIENT_ID=your_client_id
-   PAYPAL_CLIENT_SECRET=your_client_secret
-   PAYPAL_MODE=sandbox
    ```
 
 4. **Start the server:**
@@ -241,7 +229,6 @@ Automated email notifications powered by Gmail SMTP:
    ```env
    VITE_API_URL=http://localhost:5000/api
    VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
-   VITE_PAYPAL_CLIENT_ID=your_client_id
    ```
 
 4. **Start development server:**
@@ -333,7 +320,7 @@ cd frontend && npm run e2e:open
 **Production-Ready** - Complete error handling, validation, and security  
 **Well-Tested** - 300+ unit tests with TDD approach  
 **Scalable Architecture** - Design patterns for maintainability  
-**Payment Ready** - Stripe and PayPal integration  
+**Payment Ready** - Stripe integration  
 **Professional Emails** - Automated order confirmations  
 **Modern UI** - Responsive design with Tailwind CSS  
 **SOLID Principles** - Clean, maintainable codebase  
@@ -344,8 +331,7 @@ cd frontend && npm run e2e:open
 
 - **Integration** and **E2E** Tests
 - Complete Missing Unit tests If there are
-- **OTP Generation**
-- **Paypal** logic  Fix 
+- **OTP Generation** 
 
 
 ---

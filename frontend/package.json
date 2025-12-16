@@ -11,6 +11,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "integration": "npm run test:integration",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "e2e": "cypress run",
@@ -23,10 +25,8 @@
     "e2e:complete": "cypress run --spec \"cypress/e2e/complete-flow.cy.js\"",
     "e2e:admin": "cypress run --spec \"cypress/e2e/admin-flow.cy.js\"",
     "e2e:navigation": "cypress run --spec \"cypress/e2e/navigation.cy.js\""
-  
   },
   "dependencies": {
-    "@paypal/react-paypal-js": "^8.9.2",
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.5.3",
     "axios": "^1.6.2",

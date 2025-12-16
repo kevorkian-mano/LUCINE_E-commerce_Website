@@ -7,7 +7,6 @@ import userRoutes from "./src/routes/userRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
 import cartRoutes from "./src/routes/cartRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
-import paypalRoutes from "./src/routes/paypalRoutes.js";
 import { errorHandler, notFound } from "./src/middlewares/errorHandler.js";
 
 dotenv.config();
@@ -34,7 +33,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/payments", paymentRoutes);
-app.use("/api/paypal", paypalRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

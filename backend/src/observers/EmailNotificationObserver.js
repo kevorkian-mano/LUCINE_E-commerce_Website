@@ -17,7 +17,7 @@ class EmailNotificationObserver extends Observer {
     try {
       if (event === 'orderCreated') {
         // Only send email immediately for Bank Transfer (no payment confirmation)
-        // Card and PayPal payments will send email after payment confirmation
+        // Card payments will send email after payment confirmation
         const paymentMethod = data.paymentMethod || '';
         if (paymentMethod === 'Bank Transfer') {
           await this.handleOrderCreated(data);

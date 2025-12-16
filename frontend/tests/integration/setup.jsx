@@ -41,12 +41,6 @@ vi.mock('@stripe/stripe-js', () => ({
   })),
 }));
 
-// Mock PayPal
-vi.mock('@paypal/react-paypal-js', () => ({
-  PayPalScriptProvider: ({ children }) => children,
-  PayPalButtons: () => <div data-testid="paypal-buttons">PayPal Buttons</div>,
-}));
-
 // Note: API mocks are NOT created here in setup.jsx
 // Each test file should mock the API directly using vi.mock()
 // This ensures the mocks are properly recognized as vi.fn() instances

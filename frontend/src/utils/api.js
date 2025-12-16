@@ -84,11 +84,4 @@ export const paymentAPI = {
   cancel: (paymentIntentId) => api.post('/payments/cancel', { paymentIntentId }),
 };
 
-// PayPal API
-export const paypalAPI = {
-  createOrder: (data) => api.post('/paypal/create-order', data),
-  captureOrder: (data) => api.post('/paypal/capture-order', data),
-  getOrderStatus: (paypalOrderId) => api.get(`/paypal/order/${paypalOrderId}`),
-};
-
 export default api;

@@ -8,7 +8,6 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import PaymentForm from '../components/payment/PaymentForm';
 import PaymentErrorBoundary from '../components/payment/PaymentErrorBoundary';
-import PayPalButton from '../components/payment/PayPalButton';
 
 // Initialize Stripe - only if publishable key is provided and starts with 'pk_'
 const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
@@ -39,7 +38,7 @@ const Checkout = () => {
     state: '',
     zipCode: '',
     country: '',
-    paymentMethod: 'PayPal',
+    paymentMethod: 'Credit Card',
   });
 
   useEffect(() => {
@@ -61,8 +60,8 @@ const Checkout = () => {
       return;
     }
 
-    // If credit card or PayPal payment, create order first then show payment form
-    if (formData.paymentMethod === 'Credit Card' || formData.paymentMethod === 'Debit Card' || formData.paymentMethod === 'PayPal') {
+    // If credit card payment, create order first then show payment form
+    if (formData.paymentMethod === 'Credit Card' || formData.paymentMethod === 'Debit Card') {
       setLoading(true);
       try {
         const shippingAddress = {
@@ -114,8 +113,8 @@ const Checkout = () => {
             setPaymentIntentLoading(false);
           }
         } else {
-          // For PayPal, just show the PayPal button
-          toast.success('Order created. Please complete payment with PayPal.');
+          // For credit card, show the payment form
+          toast.success('Order created. Please complete payment.');
         }
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to create order';
@@ -175,69 +174,6 @@ const Checkout = () => {
   const shippingPrice = cartTotal > 100 ? 0 : 10;
   const taxPrice = cartTotal * 0.1;
   const totalPrice = cartTotal + shippingPrice + taxPrice;
-
-  // If order is created and payment method is PayPal, show PayPal button
-  if (orderCreated && currentOrder && formData.paymentMethod === 'PayPal') {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-6">Complete Payment</h1>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* PayPal Payment */}
-          <div className="lg:col-span-2">
-            <div className="card">
-              <h2 className="text-xl font-bold mb-4 flex items-center">
-                <FiCreditCard className="mr-2" />
-                PayPal Payment
-              </h2>
-              <PayPalButton
-                orderId={currentOrder._id}
-                amount={totalPrice}
-                onPaymentSuccess={handlePaymentSuccess}
-                onPaymentError={handlePaymentError}
-              />
-            </div>
-          </div>
-
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="card sticky top-20">
-              <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span>Items ({cart.items.length})</span>
-                  <span>${cartTotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Shipping</span>
-                  <span>{shippingPrice === 0 ? 'Free' : `$${shippingPrice.toFixed(2)}`}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Tax</span>
-                  <span>${taxPrice.toFixed(2)}</span>
-                </div>
-                <div className="border-t pt-2 mt-2">
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span>${totalPrice.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-semibold">Items:</h3>
-                {cart.items.map((item) => (
-                  <div key={item.product._id} className="text-sm text-gray-600">
-                    {item.product.name} x {item.quantity}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // If order is created and payment method is credit card, show payment form
   if (orderCreated && currentOrder && (formData.paymentMethod === 'Credit Card' || formData.paymentMethod === 'Debit Card')) {
@@ -519,7 +455,6 @@ const Checkout = () => {
                   value={formData.paymentMethod}
                   onChange={handleChange}
                 >
-                  <option value="PayPal">PayPal</option>
                   <option value="Credit Card">Credit Card</option>
                   <option value="Debit Card">Debit Card</option>
                   <option value="Bank Transfer">Bank Transfer</option>
