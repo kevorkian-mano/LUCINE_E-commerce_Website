@@ -36,8 +36,8 @@ Built following **Layered (3-Tier) Architecture** with SOLID principles:
 
 ```
 ┌─────────────────────────────────────┐
-│   Presentation Layer (Frontend)    │
-│   React Components & Pages         │
+│   Presentation Layer (Frontend)     │
+│   React Components & Pages          │
 └─────────────────────────────────────┘
               ↕
 ┌─────────────────────────────────────┐
